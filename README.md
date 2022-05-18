@@ -1,5 +1,12 @@
 # LowEffortPunks
 
+TODO: 
+[x] base, create repo
+[] art migration/IPFS upload script
+[] tokenid problem with offsets
+[] features to add new Punks/buy new punks 
+
+
 References:
 - Low Effort Punks: https://opensea.io/collection/low-effort-punks
 - Fast Food Punks: https://etherscan.io/address/0x51f437e4b25ce7bc7d43c13ba1140dd0e52151cb#code
