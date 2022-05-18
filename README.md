@@ -1,9 +1,13 @@
 # LowEffortPunks
 
 TODO: 
+
 [x] base, create repo
+
 [] art migration/IPFS upload script
+
 [] tokenid problem with offsets
+
 [] features to add new Punks/buy new punks 
 
 
