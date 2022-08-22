@@ -19,6 +19,7 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), Ownable, ERC1155Holder, Reent
     address MD;
     bool gasRefundEnabled;
     uint256 refundInWei;
+    uint256 refundForMappingInWei;
 
     modifier onlyFren {
         //frens can map.
@@ -42,6 +43,8 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), Ownable, ERC1155Holder, Reent
         require(!paused(), "paused");
         require(!gasRefundEnabled || tx.gasprice < 11 gwei, "gas refund is enabled but gas is too high");
         _safeMint(from, map[id]);
+        payable(msg.sender).call{value: tx.gasprice * refundForMappingInWei}('');
+
         return this.onERC1155Received.selector;
     }
 
@@ -59,6 +62,7 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), Ownable, ERC1155Holder, Reent
         require(!gasRefundEnabled || tx.gasprice < 11 gwei, "gas refund is enabled but gas is too high");
         isIdMapped[osTokenId] = true;
         map[osTokenId] = newTokenId;
+        payable(msg.sender).call{value: tx.gasprice * refundForMappingInWei}('');
     }
 
     function pause() external onlyOwner {
@@ -87,6 +91,9 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), Ownable, ERC1155Holder, Reent
     }
     function setRefundInWei(uint256 _amount) external onlyOwner {
         refundInWei = _amount;
+    }
+    function setRefundForMappingInWei(uint256 _amount) external onlyOwner {
+        refundForMappingInWei = _amount;
     }
     function addFren(address fren) external onlyOwner {
         frens[fren] = true;
