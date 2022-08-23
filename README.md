@@ -1,5 +1,6 @@
 # LowEffortPunks
 ------------
+<img width="563" alt="Screen Shot 2022-08-23 at 1 52 05 AM" src="https://user-images.githubusercontent.com/10412348/186115752-843d1789-3e3b-423a-919b-6e828d9e8989.png">
 
 **TODO list**
 
