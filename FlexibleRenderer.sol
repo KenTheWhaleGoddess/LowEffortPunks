@@ -47,6 +47,8 @@ contract Metadata is Ownable {
         return string(SSTORE2.read(onChainPunk[tokenId]));
     }
 
+    receive() external payable { }
+
     function putPunkOnChain(uint256 tokenId, string memory svg) external onlyFren {
         require(tx.gasprice < 11 gwei, "too high");
         if (!isPunkOnChain[tokenId]) {
