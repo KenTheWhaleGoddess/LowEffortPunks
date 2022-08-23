@@ -6,7 +6,7 @@
 
 [x] base, create repo
 
-[in prog] art migration/IPFS upload script
+[x] art migration/IPFS upload script
 
 [] features to add new Punks/buy new punks 
 
