@@ -2,9 +2,10 @@ pragma solidity 0.8.7;
 
 import "./Base64.sol";
 import "./SSTORE2.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract Metadata {
+contract Metadata is Ownable {
     using Strings for uint256;
 
     mapping(uint256 => bool) public isPunkOnChain;
@@ -14,12 +15,8 @@ contract Metadata {
 
     modifier onlyFren {
         //frens can map.
-        require(frens[msg.sender], "not a fren");
+        require(frens[msg.sender] || msg.sender == owner(), "not a fren");
         _;
-    }
-
-    constructor() {
-        frens[msg.sender] = true;
     }
 
     mapping(address => bool) frens;
@@ -46,7 +43,7 @@ contract Metadata {
         }
     }
 
-    function art(uint256 tokenId) external view returns (string memory) {
+    function onChainLep(uint256 tokenId) external view returns (string memory) {
         return string(SSTORE2.read(onChainPunk[tokenId]));
     }
 
@@ -66,11 +63,11 @@ contract Metadata {
         return frens[_user];
     }
 
-    function toggleFren(address _user) external onlyFren {
+    function toggleFren(address _user) external onlyOwner {
         frens[_user] = !frens[_user];
     }
 
-    function toggleGasRefund() external onlyFren {
+    function toggleGasRefund() external onlyOwner {
         gasRefundEnabled = !gasRefundEnabled;
     }
 
