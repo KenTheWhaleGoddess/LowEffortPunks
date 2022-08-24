@@ -37,13 +37,17 @@ contract Metadata is Ownable {
                 'data:application/json;base64,', Base64.encode(bytes(abi.encodePacked(
                             '{"name": "low effort punk ', tokenId.toString(), 
                             '", "image": "', 
-                            string(SSTORE2.read(onChainPunk[tokenId])),
+                            SSTORE2.read(onChainPunk[tokenId]),
                             '"}')))));
         }
     }
 
     function onChainLep(uint256 tokenId) external view returns (string memory) {
         return string(SSTORE2.read(onChainPunk[tokenId]));
+    }
+
+    function onChainLepAddress(uint256 tokenId) external view returns (address) {
+        return onChainPunk[tokenId];
     }
 
     receive() external payable { }
