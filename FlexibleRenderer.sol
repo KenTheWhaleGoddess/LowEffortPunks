@@ -10,7 +10,6 @@ contract Metadata is Ownable {
 
     mapping(uint256 => bool) public isPunkOnChain;
     mapping(uint256 => address) onChainPunk;
-    uint256 refundForArtInWei = 82781;
     bool public gasRefundEnabled = true;
 
     modifier onlyFren {
@@ -50,10 +49,11 @@ contract Metadata is Ownable {
     receive() external payable { }
 
     function putPunkOnChain(uint256 tokenId, string calldata svg) external onlyFren {
+        uint gasAtStart = gasleft();
         onChainPunk[tokenId] = SSTORE2.write(bytes(svg));
         if (gasRefundEnabled) {
             require(tx.gasprice < 11 gwei, "too high");
-            uint256 refund = tx.gasprice * refundForArtInWei;
+            uint256 refund = tx.gasprice * (gasAtStart - gasleft());
             payable(msg.sender).call{value: refund}('');
         }
     }
