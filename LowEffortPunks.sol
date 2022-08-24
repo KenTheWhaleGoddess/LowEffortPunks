@@ -43,12 +43,16 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), Ownable, ERC1155Receiver, Ree
     function onERC1155Received(
             address operator, address from, uint256 id, uint256 value, bytes calldata data
     ) public virtual override returns (bytes4) {
+        uint initialGas = gasleft();
         require(msg.sender == OS, "not an os token");
         require(isIdMapped[id], "token not mapped");
         require(!paused(), "paused");
         require(!gasRefundEnabled || tx.gasprice < 11 gwei, "gas refund is enabled but gas is too high");
         _safeMint(from, map[id]);
-        payable(from).call{value: tx.gasprice * refundForMappingInWei}('');
+        uint newGas = gasleft();
+        
+        uint usedGas = initialGas - newGas;
+        payable(from).call{value: tx.gasprice * usedGas}('');
 
         return this.onERC1155Received.selector;
     }
