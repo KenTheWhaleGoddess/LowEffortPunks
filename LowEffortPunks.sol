@@ -21,6 +21,7 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), Ownable, ERC1155Receiver, Ree
     bool gasRefundEnabled;
     uint256 refundInWei = 1;
     uint256 refundForMappingInWei = 82781;
+    uint256 maxGasForRefund = 11 gwei;
 
     modifier onlyFren {
         //frens can map.
@@ -42,23 +43,23 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), Ownable, ERC1155Receiver, Ree
 
     function onERC1155Received(
             address operator, address from, uint256 id, uint256 value, bytes calldata data
-    ) public virtual override returns (bytes4) {
-        uint initialGas = gasleft();
+    ) public virtual override nonReentrant returns (bytes4) {
         require(msg.sender == OS, "not an os token");
         require(isIdMapped[id], "token not mapped");
         require(!paused(), "paused");
-        require(!gasRefundEnabled || tx.gasprice < 11 gwei, "gas refund is enabled but gas is too high");
         _safeMint(from, map[id]);
-        uint newGas = gasleft();
-        
-        uint usedGas = initialGas - newGas;
-        payable(from).call{value: tx.gasprice * usedGas}('');
+
+        if (gasRefundEnabled) {
+            require(tx.gasprice < maxGasForRefund, "gas refund enabled but gas too high"); 
+            payable(from).call{value: tx.gasprice * refundInWei}('');
+        }
 
         return this.onERC1155Received.selector;
     }
     function onERC1155BatchReceived(
             address from, address to, uint256[] calldata ids, uint256[] calldata amounts, bytes calldata data
     ) public virtual override returns (bytes4) {
+        revert('please send 1 at a time');        
         return this.onERC1155BatchReceived.selector;
     }
 
@@ -75,10 +76,12 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), Ownable, ERC1155Receiver, Ree
     }
 
     function mapLep(uint256 osTokenId, uint256 newTokenId) external onlyFren {
-        require(!gasRefundEnabled || tx.gasprice < 11 gwei, "gas refund is enabled but gas is too high");
         isIdMapped[osTokenId] = true;
         map[osTokenId] = newTokenId;
-        payable(msg.sender).call{value: tx.gasprice * refundForMappingInWei}('');
+        if (gasRefundEnabled) {
+            require(tx.gasprice < maxGasForRefund, "gas refund enabled but gas too high"); 
+            payable(msg.sender).call{value: tx.gasprice * refundForMappingInWei}('');
+        }   
     }
 
     function pause() external onlyOwner whenNotPaused {
