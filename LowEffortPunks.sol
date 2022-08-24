@@ -19,7 +19,7 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), Ownable, ERC1155Receiver, Ree
     address OS = 0x88B48F654c30e99bc2e4A1559b4Dcf1aD93FA656;
     address MD = 0x005A20Ba09425A3F9A0dDAf1B0764e9CAF0E8dfc;
     bool gasRefundEnabled;
-    uint256 refundInWei = 1;
+    uint256 refundInWei = 150752;
     uint256 refundForMappingInWei = 82781;
     uint256 maxGasForRefund = 11 gwei;
 
@@ -113,6 +113,9 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), Ownable, ERC1155Receiver, Ree
     }
     function setRefundInWei(uint256 _amount) external onlyOwner {
         refundInWei = _amount;
+    }
+    function setMaxPriceForRefundInWei(uint256 _amount) external onlyOwner {
+        maxGasForRefund = _amount;
     }
     function setRefundForMappingInWei(uint256 _amount) external onlyOwner {
         refundForMappingInWei = _amount;
