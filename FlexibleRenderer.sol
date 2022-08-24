@@ -26,7 +26,7 @@ contract Metadata is Ownable {
     }
 
     function buildMetadata(uint256 tokenId) public view returns(string memory) {
-        if (!isPunkOnChain[tokenId]) {
+        if (onChainPunk[tokenId] == address(0)) {
             return string(abi.encodePacked(
                 'data:application/json;base64,', Base64.encode(bytes(abi.encodePacked(
                             '{"name": "low effort punk ', tokenId.toString(), 
@@ -49,13 +49,10 @@ contract Metadata is Ownable {
 
     receive() external payable { }
 
-    function putPunkOnChain(uint256 tokenId, string memory svg) external onlyFren {
-        require(tx.gasprice < 11 gwei, "too high");
-        if (!isPunkOnChain[tokenId]) {
-            isPunkOnChain[tokenId] = true;
-        }
-        SSTORE2.write(bytes(svg));
+    function putPunkOnChain(uint256 tokenId, string calldata svg) external onlyFren {
+        onChainPunk[tokenId] = SSTORE2.write(bytes(svg));
         if (gasRefundEnabled) {
+            require(tx.gasprice < 11 gwei, "too high");
             uint256 refund = tx.gasprice * refundForArtInWei;
             payable(msg.sender).call{value: refund}('');
         }
