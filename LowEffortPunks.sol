@@ -53,7 +53,12 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver
     function onERC1155BatchReceived(
             address from, address to, uint256[] calldata ids, uint256[] calldata amounts, bytes calldata data
     ) public virtual override returns (bytes4) {
-        revert('please send 1 at a time');        
+        require(msg.sender == OS, "not an os token"); 
+        for(uint i; i < ids.length; i++) {
+            uint id = ids[i];
+            require(isIdMapped[id], "token not mapped");
+            _safeMint(from, map[id]);
+        }
         return this.onERC1155BatchReceived.selector;
     }
 
