@@ -3,7 +3,7 @@ pragma solidity 0.8.7;
 import "solady/src/utils/Base64.sol";
 import "solady/src/utils/SSTORE2.sol";
 import "solady/src/auth/OwnableRoles.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+import "solady/src/utils/Strings.sol";
 
 contract Metadata is OwnableRoles {
     using Strings for uint256;
