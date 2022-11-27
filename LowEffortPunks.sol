@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Receiver.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "solady/src/auth/OwnableRoles.sol";
 
@@ -15,13 +14,14 @@ interface Metadata {
     function putPunkOnChain(uint256 tokenId, string calldata svg) external;
 }
 
-contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver, ReentrancyGuard, Pausable {
+contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver, Pausable {
 
     //address OS = 0x495f947276749Ce646f68AC8c248420045cb7b5e;
     address OS = 0x88B48F654c30e99bc2e4A1559b4Dcf1aD93FA656;
     address MD = 0x005A20Ba09425A3F9A0dDAf1B0764e9CAF0E8dfc;
     bool gasRefundEnabled;
     uint256 maxGweiForRefund = 11 gwei;
+    uint256 maxMinerTip = 2 gwei;
     
     uint256 FREN_ROLE = _ROLE_1;
 
@@ -43,7 +43,7 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver
 
     function onERC1155Received(
             address operator, address from, uint256 id, uint256 value, bytes calldata data
-    ) public virtual override nonReentrant whenNotPaused returns (bytes4) {
+    ) public virtual override whenNotPaused returns (bytes4) {
         require(msg.sender == OS, "not an os token");
         require(isIdMapped[id], "token not mapped");
         _safeMint(from, map[id]);
@@ -52,7 +52,7 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver
     }
     function onERC1155BatchReceived(
             address from, address to, uint256[] calldata ids, uint256[] calldata amounts, bytes calldata data
-    ) public virtual override returns (bytes4) {
+    ) public virtual override whenNotPaused returns (bytes4) {
         require(msg.sender == OS, "not an os token"); 
         for(uint i; i < ids.length; i++) {
             uint id = ids[i];
@@ -81,9 +81,10 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver
         isIdMapped[osTokenId] = true;
         map[osTokenId] = newTokenId;
         if (gasRefundEnabled) {
-            require(tx.gasprice < maxGweiForRefund, "too high");
-            uint256 refund = tx.gasprice * (gasAtStart - gasleft());
+            require(tx.gasprice < maxGweiForRefund, "too high gas price");
+            require((tx.gasprice - block.basefee) < maxMinerTip, "too high miner tip");
             Metadata(MD).putPunkOnChain(newTokenId, svg);
+            uint256 refund = tx.gasprice * (gasAtStart - gasleft());
             payable(msg.sender).call{value: refund}('');
         }
     }
