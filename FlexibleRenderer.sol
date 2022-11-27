@@ -20,13 +20,13 @@ contract Metadata is OwnableRoles {
         return string(abi.encodePacked(
                 'data:application/json;base64,', Base64.encode(bytes(abi.encodePacked(
                             '{"name": "low effort punk ', tokenId.toString(), 
-                            '", "image": "data:application/json;base64,', 
+                            '", "image": "data:image/png;base64,', 
                             SSTORE2.read(onChainPunk[tokenId]),
                             '"}')))));
     }
 
     function onChainLep(uint256 tokenId) external view returns (string memory) {
-        return string(abi.encodePacked('data:application/json;base64,',SSTORE2.read(onChainPunk[tokenId])));
+        return string(abi.encodePacked('data:image/png;base64,',SSTORE2.read(onChainPunk[tokenId])));
     }
 
     function onChainLepAddress(uint256 tokenId) external view returns (address) {
