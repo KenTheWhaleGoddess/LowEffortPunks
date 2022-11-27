@@ -33,8 +33,6 @@ contract Metadata is OwnableRoles {
         return onChainPunk[tokenId];
     }
 
-    receive() external payable { }
-
     function putPunkOnChain(uint256 tokenId, string calldata svg) external onlyOwnerOrRoles(LEP_CONTRACT) {
         onChainPunk[tokenId] = SSTORE2.write(bytes(svg));
     }
