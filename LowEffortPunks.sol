@@ -1,7 +1,6 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.18;
 
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -11,7 +10,7 @@ import "solady/src/auth/OwnableRoles.sol";
 
 interface Metadata {
     function tokenURI(uint256 tokenId) external view returns (string memory);
-    function putPunkOnChain(uint256 tokenId, string calldata svg) external;
+    function storeOneNew(uint256 tokenId, string memory ipfs) external;
 }
 
 contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver, Pausable {
@@ -28,8 +27,14 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver
     mapping(uint256 => bool) isIdMapped;
     mapping(uint256 => uint256) map;    
 
+    uint256 nextNew;
 
-    constructor() {
+    // masks used to identify punks by OS ID standard, used in isPunk(tokenId)
+    uint256 mask =            0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000FFFFFFFFFF;
+    uint256 maskedPunkValue = 0xC0C8D886B92A811E8E41CB6AB5144E44DBBFBFA3000000000000000000000001;
+
+    constructor(uint256 firstNewId) {
+        nextNew = firstNewId;
         _initializeOwner(msg.sender);
     }
 
@@ -45,8 +50,8 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver
             address operator, address from, uint256 id, uint256 value, bytes calldata data
     ) public virtual override whenNotPaused returns (bytes4) {
         require(msg.sender == OS, "not an os token");
-        require(isIdMapped[id], "token not mapped");
-        _safeMint(from, map[id]);
+        require(isPunk(id), "not a Punk");
+        _safeMint(from, id);
 
         return this.onERC1155Received.selector;
     }
@@ -55,11 +60,16 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver
     ) public virtual override whenNotPaused returns (bytes4) {
         require(msg.sender == OS, "not an os token"); 
         for(uint i; i < ids.length; i++) {
-            uint id = ids[i];
-            require(isIdMapped[id], "token not mapped");
-            _safeMint(from, map[id]);
+            require(isPunk(ids[i]), "not a Punk");
+
+            _safeMint(from, ids[i]);
         }
         return this.onERC1155BatchReceived.selector;
+    }
+
+
+    function isPunk(uint256 tokenId) public view returns (bool) {
+        return ((tokenId & mask) == maskedPunkValue);
     }
 
     receive() external payable {}
@@ -76,25 +86,17 @@ contract LEP is ERC721('Low Effort Punks', 'LEP'), OwnableRoles, ERC1155Receiver
         return gasRefundEnabled;
     }
 
-    function mapLep(uint256 osTokenId, uint256 newTokenId, string memory svg) external onlyOwnerOrRoles(FREN_ROLE) {
-        uint gasAtStart = gasleft();        
-        isIdMapped[osTokenId] = true;
-        map[osTokenId] = newTokenId;
-        if (gasRefundEnabled) {
-            require(tx.gasprice < maxGweiForRefund, "too high gas price");
-            require((tx.gasprice - block.basefee) < maxMinerTip, "too high miner tip");
-            Metadata(MD).putPunkOnChain(newTokenId, svg);
-            uint256 refund = tx.gasprice * (gasAtStart - gasleft());
-            payable(msg.sender).call{value: refund}('');
-        }
-    }
-
     function pause() external onlyOwner whenNotPaused {
         _pause();
     }
 
     function unpause() external onlyOwner whenPaused {
         _unpause();
+    }
+
+    function mintNew(string memory ipfs) external onlyOwner {
+        Metadata(MD).storeOneNew(nextNew, ipfs);
+        nextNew += 1;
     }
 
     function retrieveOldLep(uint256 tokenId) external onlyOwner {
