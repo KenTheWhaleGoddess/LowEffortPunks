@@ -81,13 +81,7 @@ contract LowEffortPunks is ERC721, OwnableRoles {
         if(!isLEP(id)) revert NotLEP();
 
         if(_exists(id)) {
-            unchecked {
-                gasUsed -= gasleft(); //deduct gas refund for repeats 
-            }
             _transfer(address(0), address(this), from, id);
-            unchecked {
-                gasUsed += gasleft(); //deduct gas refund for repeats 
-            }
         } else {
             _mint(from, id);
             uint256 gasUsed = gasAtStart - gasleft();
