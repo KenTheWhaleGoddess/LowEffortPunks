@@ -73,7 +73,7 @@ contract LowEffortPunks is ERC721, OwnableRoles {
             uint256 value, 
             bytes calldata //data
     ) external returns (bytes4) {
-        uint256 gasAtStart = gasleft();
+        uint256 gasUsed = gasleft();
         uint256 tokensEligibleForRefund;
 
         if(msg.sender != OPENSEA_SHARED_STOREFRONT) revert NotSharedStorefrontToken();
@@ -84,7 +84,9 @@ contract LowEffortPunks is ERC721, OwnableRoles {
             _transfer(address(0), address(this), from, id);
         } else {
             _mint(from, id);
-            uint256 gasUsed = gasAtStart - gasleft();
+            unchecked {
+                gasUsed -= gasleft();
+            }
             GasRefundSettings memory grs = gasRefundSettings;
             if(grs.gasRefundEnabled) {
                 processGasRefund(grs, from, 1, gasUsed);
@@ -101,8 +103,7 @@ contract LowEffortPunks is ERC721, OwnableRoles {
             uint256[] calldata amounts, 
             bytes calldata //data
     ) external returns (bytes4) {
-        uint256 gasUsed = 0;
-        uint256 gasAtStart = gasleft();
+        uint256 gasUsed = gasleft();
         uint256 tokensEligibleForRefund;
 
         if(msg.sender != OPENSEA_SHARED_STOREFRONT) revert NotSharedStorefrontToken();
@@ -114,9 +115,14 @@ contract LowEffortPunks is ERC721, OwnableRoles {
             if(!isLEP(id)) revert NotLEP();
 
             if(_exists(id)) {
+                unchecked {
+                    gasUsed -= gasleft(); //deduct gas refund for repeats 
+                }
                 _transfer(address(0), address(this), from, id);
+                unchecked {
+                    gasUsed += gasleft(); //deduct gas refund for repeats 
+                }
             } else {
-                gasUsed += gasAtStart - gasleft();
                 _mint(from, id);
                 unchecked {
                     ++tokensEligibleForRefund;
@@ -128,6 +134,9 @@ contract LowEffortPunks is ERC721, OwnableRoles {
             }
         }
 
+        unchecked {
+            gasUsed -= gasleft();
+        }
         GasRefundSettings memory grs = gasRefundSettings;
         if(grs.gasRefundEnabled) {
             processGasRefund(grs, from, tokensEligibleForRefund, gasUsed);
