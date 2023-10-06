@@ -13,6 +13,7 @@ contract LowEffortPunks is ERC721, OwnableRoles {
     error NotLEP();
     error GasRefundFailed();
     error ZeroTokenTransfer();
+    error MetadataLocked();
 
     struct GasRefundSettings {
         uint40 maxRefundBaseFee;
@@ -28,6 +29,7 @@ contract LowEffortPunks is ERC721, OwnableRoles {
     address private constant LEP_DEPLOYER_2 = 0x11E98c6eb7495fE047D08d14feEc64Ca683c73CB;
     address private constant OPENSEA_SHARED_STOREFRONT = 0x88B48F654c30e99bc2e4A1559b4Dcf1aD93FA656; //0x495f947276749Ce646f68AC8c248420045cb7b5e
     address public metadataRenderer;
+    bool public metadataLocked;
     
     mapping(address => mapping(uint256 => uint256)) private validLEPTokens;
 
@@ -71,7 +73,7 @@ contract LowEffortPunks is ERC721, OwnableRoles {
             uint256 value, 
             bytes calldata //data
     ) external returns (bytes4) {
-        uint256 gasUsed = gasleft();
+        uint256 gasAtStart = gasleft();
         uint256 tokensEligibleForRefund;
 
         if(msg.sender != OPENSEA_SHARED_STOREFRONT) revert NotSharedStorefrontToken();
@@ -88,15 +90,11 @@ contract LowEffortPunks is ERC721, OwnableRoles {
             }
         } else {
             _mint(from, id);
-            tokensEligibleForRefund = 1;
-        }
-
-        unchecked {
-            gasUsed -= gasleft();
-        }
-        GasRefundSettings memory grs = gasRefundSettings;
-        if(grs.gasRefundEnabled) {
-            processGasRefund(grs, from, tokensEligibleForRefund, gasUsed);
+            uint256 gasUsed = gasAtStart - gasleft();
+            GasRefundSettings memory grs = gasRefundSettings;
+            if(grs.gasRefundEnabled) {
+                processGasRefund(grs, from, 1, gasUsed);
+            }
         }
 
         return 0xf23a6e61;
@@ -109,7 +107,8 @@ contract LowEffortPunks is ERC721, OwnableRoles {
             uint256[] calldata amounts, 
             bytes calldata //data
     ) external returns (bytes4) {
-        uint256 gasUsed = gasleft();
+        uint256 gasUsed = 0;
+        uint256 gasAtStart = gasleft();
         uint256 tokensEligibleForRefund;
 
         if(msg.sender != OPENSEA_SHARED_STOREFRONT) revert NotSharedStorefrontToken();
@@ -121,14 +120,9 @@ contract LowEffortPunks is ERC721, OwnableRoles {
             if(!isLEP(id)) revert NotLEP();
 
             if(_exists(id)) {
-                unchecked {
-                    gasUsed -= gasleft(); //deduct gas refund for repeats 
-                }
                 _transfer(address(0), address(this), from, id);
-                unchecked {
-                    gasUsed += gasleft(); //deduct gas refund for repeats 
-                }
             } else {
+                gasUsed += gasAtStart - gasleft();
                 _mint(from, id);
                 unchecked {
                     ++tokensEligibleForRefund;
@@ -140,9 +134,6 @@ contract LowEffortPunks is ERC721, OwnableRoles {
             }
         }
 
-        unchecked {
-            gasUsed -= gasleft();
-        }
         GasRefundSettings memory grs = gasRefundSettings;
         if(grs.gasRefundEnabled) {
             processGasRefund(grs, from, tokensEligibleForRefund, gasUsed);
@@ -205,7 +196,14 @@ contract LowEffortPunks is ERC721, OwnableRoles {
     receive() external payable {}
 
     function setMetadataContract(address _metadataRenderer) external onlyOwner {
+        if (metadataLocked) {
+            revert MetadataLocked(); 
+        }
         metadataRenderer = _metadataRenderer;
+    }
+
+    function lockMetadataContract() external onlyOwner {
+        metadataLocked = true;
     }
 
     function setGasRefundSettings(GasRefundSettings calldata _gasRefundSettings) external onlyOwner {
